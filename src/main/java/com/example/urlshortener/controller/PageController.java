@@ -2,6 +2,8 @@
 
 package com.example.urlshortener.controller;
 
+import com.example.urlshortener.dto.UrlStatsResponse; // NEW: Import the DTO
+import com.example.urlshortener.exception.UrlNotFoundException; // NEW: Import the exception
 import com.example.urlshortener.service.UrlShortenerService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +20,7 @@ public class PageController {
         this.urlShortenerService = urlShortenerService;
     }
 
+    // ... (existing indexPage() and handleShortenForm() methods) ...
     @GetMapping("/")
     public String indexPage() {
         return "index";
@@ -25,21 +28,35 @@ public class PageController {
 
     @PostMapping("/shorten-web")
     public String handleShortenForm(@RequestParam("longUrl") String longUrl, Model model) {
-        // 1. Delegate to the service to perform the core business logic.
         String shortCode = urlShortenerService.shortenUrl(longUrl);
-
-        // 2. Construct the full, user-facing URL.
         String fullShortUrl = "http://localhost:8080/" + shortCode;
-
-        // 3. Pack the results into the Model object to make them available to the view.
         model.addAttribute("originalUrl", longUrl);
         model.addAttribute("shortUrlResult", fullShortUrl);
+        return "index";
+    }
 
-        // --- THIS TASK'S FOCUS ---
-        // 4. Return the view name. This instructs Spring MVC to re-render the 'index.html'
-        //    template. Because we've added attributes to the 'model', the Thymeleaf engine
-        //    will now have access to 'originalUrl' and 'shortUrlResult' when processing
-        //    the template, allowing us to display the results to the user.
+    @PostMapping("/check-stats")
+    public String handleStatsCheckForm(@RequestParam("checkShortCode") String shortCode, Model model) {
+        // --- HIGHLIGHTED CHANGE START ---
+
+        try {
+            // 1. Call the service to get the statistics. If successful, this returns our DTO.
+            UrlStatsResponse stats = urlShortenerService.getStats(shortCode);
+            // 2. Add the successfully retrieved stats object to the model.
+            // We will use the key "urlStats" to reference this object in our HTML.
+            model.addAttribute("urlStats", stats);
+        } catch (UrlNotFoundException e) {
+            // 3. If the service throws UrlNotFoundException, we catch it here.
+            // This prevents the application from showing a generic error page.
+            // Instead, we add a user-friendly error message to the model.
+            // We will use the key "statsError" to check for this message in our HTML.
+            model.addAttribute("statsError", "Statistics not found for short code: " + shortCode);
+        }
+
+        // --- HIGHLIGHTED CHANGE END ---
+
+        // 4. Return "index" to re-render the page. The Thymeleaf template will now have
+        // access to either the "urlStats" object or the "statsError" message.
         return "index";
     }
 }

@@ -2,10 +2,11 @@
 
 package com.example.urlshortener.service;
 
-// NEW IMPORT for our custom exception
 import com.example.urlshortener.exception.UrlNotFoundException;
 import com.example.urlshortener.model.UrlMapping;
 import com.example.urlshortener.repository.UrlMappingRepository;
+// NEW: Import the DTO we will be returning.
+import com.example.urlshortener.dto.UrlStatsResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class UrlShortenerService {
 
     @Transactional
     public String shortenUrl(String originalUrl) {
+        // ... (existing shortenUrl method logic)
         UrlMapping urlMapping = new UrlMapping();
         urlMapping.setOriginalUrl(originalUrl);
         urlMapping.setCreationDate(LocalDateTime.now());
@@ -38,35 +40,54 @@ public class UrlShortenerService {
         return shortCode;
     }
 
-    /**
-     * Finds the original URL for a given short code and increments its click count.
-     * The @Transactional annotation ensures this is an atomic operation.
-     *
-     * @param shortCode The unique code representing the shortened URL.
-     * @return The original, long URL to redirect to.
-     * @throws UrlNotFoundException if the short code does not exist in the database.
-     */
     @Transactional
     public String getOriginalUrlAndIncrementClicks(String shortCode) {
-        // The .orElseThrow() method is the most elegant way to handle an Optional that
-        // is expected to contain a value.
-        // It attempts to get the value from the Optional. If the Optional is empty,
-        // it throws the exception provided by the Supplier lambda `() -> ...`.
-        // This single line replaces the entire if/else block.
+        // ... (existing getOriginalUrlAndIncrementClicks method logic)
         UrlMapping urlMapping = urlMappingRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException("URL not found for short code: " + shortCode));
 
-        // This part of the code is only reached if a UrlMapping was found.
         urlMapping.setClickCount(urlMapping.getClickCount() + 1);
-
-        // Within a @Transactional method, this save call is technically optional due to
-        // dirty checking, but it makes the intent to persist the change explicit.
         urlMappingRepository.save(urlMapping);
 
         return urlMapping.getOriginalUrl();
     }
 
+    // --- NEWLY ADDED METHOD START ---
+
+    /**
+     * Retrieves statistics for a given short code.
+     * This is a read-only operation and doesn't need to be @Transactional by itself,
+     * but adding it is harmless and keeps it consistent with other data-access methods.
+     *
+     * @param shortCode The unique code to look up.
+     * @return A UrlStatsResponse DTO containing the statistics.
+     * @throws UrlNotFoundException if the short code does not exist.
+     */
+    public UrlStatsResponse getStats(String shortCode) {
+        // Step 1: Find the entity. We reuse our repository's custom find method.
+        // Step 2: Validate. We reuse the .orElseThrow() pattern with our existing
+        // custom exception. This ensures our API's error handling is consistent.
+        UrlMapping urlMapping = urlMappingRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new UrlNotFoundException("No statistics found for short code: " + shortCode));
+
+        // Step 3: Transform (Map) the entity to the DTO.
+        // We construct the full URL here for user convenience, as the DTO contract requires it.
+        String fullShortUrl = "http://localhost:8080/" + urlMapping.getShortCode();
+
+        // We create a new instance of our immutable UrlStatsResponse record,
+        // populating it with data from the UrlMapping entity we just fetched.
+        return new UrlStatsResponse(
+                urlMapping.getOriginalUrl(),
+                fullShortUrl,
+                urlMapping.getCreationDate(),
+                urlMapping.getClickCount()
+        );
+    }
+
+    // --- NEWLY ADDED METHOD END ---
+
     private String encodeBase62(Long number) {
+        // ... (existing encodeBase62 method logic)
         if (number == 0) {
             return String.valueOf(BASE62_CHARS.charAt(0));
         }

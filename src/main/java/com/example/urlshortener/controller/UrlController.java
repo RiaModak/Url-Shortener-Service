@@ -4,6 +4,9 @@ package com.example.urlshortener.controller;
 
 import com.example.urlshortener.dto.ShortenUrlRequest;
 import com.example.urlshortener.dto.ShortenUrlResponse;
+// We will create this DTO in the next step. For now, we can add the import
+// in preparation, or your IDE can add it for you later.
+import com.example.urlshortener.dto.UrlStatsResponse;
 import com.example.urlshortener.service.UrlShortenerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -36,24 +39,33 @@ public class UrlController {
     @GetMapping("/{shortCode}")
     public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
         String originalUrl = urlShortenerService.getOriginalUrlAndIncrementClicks(shortCode);
-
-        // --- HIGHLIGHTED REFACTOR START ---
-
-        // This single line replaces the previous multi-line implementation.
-        // It uses the ResponseEntity's fluent builder pattern for a more concise and readable result.
-        //
-        // 1. ResponseEntity.status(HttpStatus.FOUND): This static method starts the build process.
-        //    It sets the HTTP status code to 302 Found and returns a builder object.
-        //
-        // 2. .location(URI.create(originalUrl)): This method is called on the builder object.
-        //    It sets the 'Location' header to the provided URI. It also returns the same
-        //    builder object, allowing for method chaining.
-        //
-        // 3. .build(): This final method completes the process. It constructs the immutable
-        //    ResponseEntity<Void> object from the configured builder. Since we never called
-        //    the .body() method, the response has an empty body, which is correct for a redirect.
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(originalUrl)).build();
-
-        // --- HIGHLIGHTED REFACTOR END ---
     }
+
+    // --- NEWLY ADDED METHOD START ---
+
+    /**
+     * This endpoint retrieves statistics for a specific short URL.
+     *
+     * @GetMapping("/api/v1/url/stats/{shortCode}"): Maps HTTP GET requests to this method.
+     *   - The path is namespaced under our API standard /api/v1/url.
+     *   - 'stats' clearly indicates the purpose of the endpoint.
+     *   - {shortCode} is a path variable to specify which URL's stats to fetch.
+     *
+     * @param shortCode The short code captured from the URL path via @PathVariable.
+     * @return A ResponseEntity containing the statistics in a UrlStatsResponse DTO.
+     *         The actual implementation will be built in the following tasks.
+     */
+    @GetMapping("/api/v1/url/stats/{shortCode}")
+    public ResponseEntity<UrlStatsResponse> getUrlStats(@PathVariable String shortCode) {
+        // In the next tasks, we will:
+        // 1. Create the UrlStatsResponse DTO.
+        // 2. Add a new method to the UrlShortenerService to fetch the stats.
+        // 3. Call that service method here and return its result.
+
+        // For now, returning null is a placeholder for the logic to come.
+        return null;
+    }
+
+    // --- NEWLY ADDED METHOD END ---
 }
