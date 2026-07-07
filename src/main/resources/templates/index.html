@@ -21,58 +21,43 @@
 
 <h1>Welcome to the URL Shortener!</h1>
 
-<!-- Existing URL Shortening Form -->
 <form th:action="@{/shorten-web}" method="POST">
-    <!-- ... form content ... -->
     <div>
         <label for="longUrl">Enter a long URL to shorten:</label>
     </div>
     <div>
         <input type="text" id="longUrl" name="longUrl" size="50" placeholder="https://example.com/very/long/url" required>
     </div>
+
+    <!-- --- NEWLY ADDED BLOCK START --- -->
+    <div>
+        <label for="customAlias">Enter a custom alias (optional):</label>
+    </div>
+    <div>
+        <input type="text" id="customAlias" name="customAlias" size="50" placeholder="e.g., my-awesome-event">
+    </div>
+    <!-- --- NEWLY ADDED BLOCK END --- -->
+
     <div>
         <input type="submit" value="Shorten URL">
     </div>
 </form>
 
-<!-- Existing Results Display Area -->
+<!-- --- RESULTS DISPLAY START --- -->
+
+<!-- Case: Success -->
 <div class="result" th:if="${shortUrlResult != null}">
-    <!-- ... results content ... -->
-    <h2>Success! Here is your short URL:</h2>
-    <p>
-        Original URL:
-        <span th:text="${originalUrl}">https://example.com/original-url-goes-here</span>
-    </p>
-    <p>
-        Short URL:
-        <a th:href="${shortUrlResult}" th:text="${shortUrlResult}" target="_blank">http://localhost:8080/short-url-goes-here</a>
-    </p>
+    <h3>Shortened URL</h3>
+    <p><strong>Original URL:</strong> <span th:text="${originalUrl}"></span></p>
+    <p><strong>Short URL:</strong> <a th:href="${shortUrlResult}" th:text="${shortUrlResult}" target="_blank"></a></p>
 </div>
 
-<!-- src/main/resources/templates/index.html -->
+<!-- Case: Alias Error -->
+<div class="result" style="background-color: #f8d7da; border-color: #f5c6cb;" th:if="${aliasError != null}">
+    <p style="color: #721c24;" th:text="${aliasError}"></p>
+</div>
 
-<!-- ... (all the HTML code from before the stats form) ... -->
-
-<hr>
-
-<h2>Check Link Statistics</h2>
-
-<form th:action="@{/check-stats}" method="POST">
-    <!-- ... (the stats form you already created) ... -->
-    <div>
-        <label for="checkShortCode">Enter a short code to check its stats:</label>
-    </div>
-    <div>
-        <input type="text" id="checkShortCode" name="checkShortCode" size="20" placeholder="e.g., aB1cDe" required>
-    </div>
-    <div>
-        <input type="submit" value="Check Stats">
-    </div>
-</form>
-
-<!-- --- NEWLY ADDED RESULTS DISPLAY START --- -->
-
-<!-- Case 1: Success. This block is rendered only if the "urlStats" object exists in the model. -->
+<!-- Case: Stats Success -->
 <div class="result" th:if="${urlStats != null}">
     <h3>Statistics</h3>
     <p><strong>Original URL:</strong> <span th:text="${urlStats.originalUrl}"></span></p>
@@ -81,12 +66,12 @@
     <p><strong>Total Clicks:</strong> <span th:text="${urlStats.clickCount}"></span></p>
 </div>
 
-<!-- Case 2: Error. This block is rendered only if the "statsError" message exists in the model. -->
+<!-- Case: Stats Error -->
 <div class="result" style="background-color: #f8d7da; border-color: #f5c6cb;" th:if="${statsError != null}">
     <p style="color: #721c24;" th:text="${statsError}"></p>
 </div>
 
-<!-- --- NEWLY ADDED RESULTS DISPLAY END --- -->
+<!-- --- RESULTS DISPLAY END --- -->
 
 </body>
 </html>

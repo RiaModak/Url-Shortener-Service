@@ -28,14 +28,21 @@ public class UrlController {
         this.urlShortenerService = urlShortenerService;
     }
 
+    // --- METHOD TO BE MODIFIED ---
     @PostMapping("/api/v1/url/shorten")
     public ResponseEntity<ShortenUrlResponse> shortenUrl(@Valid @RequestBody ShortenUrlRequest request) {
-        String shortCode = urlShortenerService.shortenUrl(request.url());
+        // --- HIGHLIGHTED CHANGE: UPDATED SERVICE CALL ---
+        // We now pass both the url and the customAlias from the request DTO to the service method.
+        // The record's accessor methods (request.url() and request.customAlias()) make this clean and easy.
+        // If the client didn't provide a 'customAlias' in the JSON, request.customAlias() will be null.
+        String shortCode = urlShortenerService.shortenUrl(request.url(), request.customAlias());
+
         String fullShortUrl = "http://localhost:8080/" + shortCode;
         ShortenUrlResponse response = new ShortenUrlResponse(fullShortUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // ... other existing methods (redirect, getUrlStats) ...
     @GetMapping("/{shortCode}")
     public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
         String originalUrl = urlShortenerService.getOriginalUrlAndIncrementClicks(shortCode);
