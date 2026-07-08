@@ -3,23 +3,19 @@
 package com.example.urlshortener.service;
 
 import com.example.urlshortener.dto.UrlStatsResponse;
-// We will need this exception in the next task.
 import com.example.urlshortener.exception.AliasAlreadyExistsException;
 import com.example.urlshortener.exception.UrlNotFoundException;
 import com.example.urlshortener.model.UrlMapping;
 import com.example.urlshortener.repository.UrlMappingRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-// NEW: Import the Spring StringUtils class for a convenient text check.
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 public class UrlShortenerService {
 
-    // ... existing fields and constructor ...
     private static final String BASE62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private final UrlMappingRepository urlMappingRepository;
 
@@ -28,54 +24,46 @@ public class UrlShortenerService {
     }
 
     @Transactional
-    public String shortenUrl(String originalUrl, String customAlias) {
-
-        // --- HIGHLIGHTED REFACTORING START ---
-
-        // Case 1: A custom alias is provided by the user.
+    public String shortenUrl(String originalUrl, String customAlias, Integer hoursToExpire) {
         if (StringUtils.hasText(customAlias)) {
-            // Check if the alias is already in use.
             if (urlMappingRepository.findByShortCode(customAlias).isPresent()) {
-                // If it exists, throw our new, specific exception.
-                // This will halt execution and be caught by our global handler.
                 throw new AliasAlreadyExistsException("Alias '" + customAlias + "' is already in use.");
             }
-
-            // If we reach here, the alias is available. We'll use it.
             UrlMapping newUrlMapping = new UrlMapping();
             newUrlMapping.setOriginalUrl(originalUrl);
             newUrlMapping.setCreationDate(LocalDateTime.now());
-            newUrlMapping.setShortCode(customAlias); // Use the user's provided alias
+            newUrlMapping.setShortCode(customAlias);
+
+            if (hoursToExpire != null) {
+                newUrlMapping.setExpirationDate(LocalDateTime.now().plusHours(hoursToExpire));
+            }
             urlMappingRepository.save(newUrlMapping);
             return customAlias;
-        }
-
-        // Case 2: No custom alias is provided. Fall back to the original generation logic.
-        else {
-            // This is the logic you've already built for generating a code.
+        } else {
             UrlMapping urlMapping = new UrlMapping();
             urlMapping.setOriginalUrl(originalUrl);
             urlMapping.setCreationDate(LocalDateTime.now());
 
-            // Save first to get the unique ID from the database sequence.
-            UrlMapping savedEntity = urlMappingRepository.save(urlMapping);
+            if (hoursToExpire != null) {
+                urlMapping.setExpirationDate(LocalDateTime.now().plusHours(hoursToExpire));
+            }
 
-            // Encode the ID to create the unique short code.
+            UrlMapping savedEntity = urlMappingRepository.save(urlMapping);
             String shortCode = encodeBase62(savedEntity.getId());
             savedEntity.setShortCode(shortCode);
-
-            // Save the entity again, this time with the generated short code.
             urlMappingRepository.save(savedEntity);
-
             return shortCode;
         }
     }
 
-    // ... other service methods (getOriginalUrlAndIncrementClicks, getStats, etc.) ...
     @Transactional
     public String getOriginalUrlAndIncrementClicks(String shortCode) {
         UrlMapping urlMapping = urlMappingRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException("URL not found for short code: " + shortCode));
+
+        if (urlMapping.getExpirationDate() != null && urlMapping.getExpirationDate().isBefore(LocalDateTime.now())) {
+            throw new UrlNotFoundException("This link has expired and is no longer active.");
+        }
 
         urlMapping.setClickCount(urlMapping.getClickCount() + 1);
         urlMappingRepository.save(urlMapping);
@@ -83,7 +71,8 @@ public class UrlShortenerService {
         return urlMapping.getOriginalUrl();
     }
 
-    public UrlStatsResponse getStats(String shortCode) {
+    // FIXED: Renamed from getStats to getUrlStats to match your Controllers
+    public UrlStatsResponse getUrlStats(String shortCode) {
         UrlMapping urlMapping = urlMappingRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException("No statistics found for short code: " + shortCode));
 

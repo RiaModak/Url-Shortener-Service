@@ -1,17 +1,14 @@
-// src/main/java/com/example/urlshortener/controller/PageController.java
-
 package com.example.urlshortener.controller;
 
-// NEW: Import the new exception we need to catch.
-import com.example.urlshortener.exception.AliasAlreadyExistsException;
 import com.example.urlshortener.dto.UrlStatsResponse;
+import com.example.urlshortener.exception.AliasAlreadyExistsException;
 import com.example.urlshortener.exception.UrlNotFoundException;
 import com.example.urlshortener.service.UrlShortenerService;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class PageController {
@@ -22,53 +19,41 @@ public class PageController {
         this.urlShortenerService = urlShortenerService;
     }
 
-    // ... (indexPage method) ...
     @GetMapping("/")
     public String indexPage() {
         return "index";
     }
 
-    // --- METHOD TO BE REFACTORED ---
     @PostMapping("/shorten-web")
     public String handleShortenForm(
             @RequestParam("longUrl") String longUrl,
-            // NEW: Add a parameter for the custom alias.
-            // The `name` must match the input's 'name' attribute in the HTML.
-            // `required = false` tells Spring that this parameter is optional.
-            // If the user doesn't submit a value, 'customAlias' will be null.
             @RequestParam(name = "customAlias", required = false) String customAlias,
-            Model model
+            RedirectAttributes redirectAttributes
     ) {
-        // We add the original URL to the model immediately, so the user's input
-        // is preserved on the page even if there's an error.
-        model.addAttribute("originalUrl", longUrl);
+        redirectAttributes.addFlashAttribute("originalUrl", longUrl);
 
         try {
-            // UPDATED: Pass both the URL and the (potentially null) alias to the service.
-            String shortCode = urlShortenerService.shortenUrl(longUrl, customAlias);
+            String shortCode = urlShortenerService.shortenUrl(longUrl, customAlias, null);
             String fullShortUrl = "http://localhost:8080/" + shortCode;
-
-            // Add the successful result to the model.
-            model.addAttribute("shortUrlResult", fullShortUrl);
-
+            redirectAttributes.addFlashAttribute("shortUrlResult", fullShortUrl);
         } catch (AliasAlreadyExistsException e) {
-            // If the service throws our custom exception, we catch it.
-            // We add a user-friendly error message to the model for Thymeleaf to display.
-            model.addAttribute("aliasError", e.getMessage());
+            redirectAttributes.addFlashAttribute("aliasError", e.getMessage());
         }
 
-        return "index";
+        return "redirect:/";
     }
 
-    // ... (handleStatsCheckForm method) ...
     @PostMapping("/check-stats")
-    public String handleStatsCheckForm(@RequestParam("checkShortCode") String shortCode, Model model) {
+    public String handleStatsCheckForm(
+            @RequestParam("shortCode") String shortCode,
+            RedirectAttributes redirectAttributes
+    ) {
         try {
-            UrlStatsResponse stats = urlShortenerService.getStats(shortCode);
-            model.addAttribute("urlStats", stats);
+            UrlStatsResponse stats = urlShortenerService.getUrlStats(shortCode);
+            redirectAttributes.addFlashAttribute("urlStats", stats);
         } catch (UrlNotFoundException e) {
-            model.addAttribute("statsError", "Statistics not found for short code: " + shortCode);
+            redirectAttributes.addFlashAttribute("statsError", e.getMessage());
         }
-        return "index";
+        return "redirect:/";
     }
 }
