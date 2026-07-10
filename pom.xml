@@ -71,19 +71,20 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<!--
+              The 'runtime' scope is very important here. It tells Maven that this
+              dependency is not needed during the compilation of our code (our code
+              only knows about generic JPA/JDBC interfaces, not PostgreSQL specifics),
+              but it is absolutely essential at runtime when the application actually
+              tries to establish a connection to the database.
+            -->
+			<scope>runtime</scope>
+		</dependency>
 	</dependencies>
-	<dependency>
-		<groupId>org.postgresql</groupId>
-		<artifactId>postgresql</artifactId>
-		<!--
-          The 'runtime' scope is very important here. It tells Maven that this
-          dependency is not needed during the compilation of our code (our code
-          only knows about generic JPA/JDBC interfaces, not PostgreSQL specifics),
-          but it is absolutely essential at runtime when the application actually
-          tries to establish a connection to the database.
-        -->
-		<scope>runtime</scope>
-	</dependency>
+
 	<build>
 		<plugins>
 			<plugin>

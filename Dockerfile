@@ -6,6 +6,7 @@
 # We start with an official Maven image that includes OpenJDK 17.
 # This image is our fully-equipped workshop.
 # We give this stage a name, "builder", so we can refer to it later.
+
 FROM maven:3.8.5-openjdk-17 AS builder
 
 # Set the working directory inside the container.
@@ -36,7 +37,7 @@ RUN mvn package -DskipTests
 # We start the final stage fresh with a minimal, production-ready JRE image.
 # The 'slim' variant is significantly smaller and more secure than the full JDK image.
 # This is our clean, empty showroom.
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jdk-alpine
 
 # Set the working directory for our running application.
 WORKDIR /app
